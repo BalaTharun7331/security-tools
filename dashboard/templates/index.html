@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI XSS Scanner v2.0</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">&#x1F3AF; AI XSS Scanner <span class="ver">v2.0</span></div>
+  <div class="hright">
+    <span id="badge" class="badge idle">&#x26AA; IDLE</span>
+    <span id="clock" class="clock"></span>
+  </div>
+</div>
+
+<!-- SCAN INPUT -->
+<div class="scan-card">
+  <div class="scan-row">
+    <input id="url" type="text" class="url-input"
+           placeholder="Enter any domain: https://target.com or https://target.com/page?id=1"/>
+    <select id="scan-mode" class="mode-select">
+      <option value="full">Full Scan</option>
+      <option value="deep">Deep Scan</option>
+      <option value="quick">Quick Scan</option>
+    </select>
+    <button id="btn-scan" onclick="startScan()">&#x1F680; Start Scan</button>
+    <button id="btn-stop" onclick="stopScan()" class="btn-stop" disabled>&#x23F9; Stop</button>
+  </div>
+  <div class="tags">
+    <span class="tag">&#x2705; Full Domain Crawl</span>
+    <span class="tag">&#x2705; ALL Parameters</span>
+    <span class="tag">&#x2705; Form XSS</span>
+    <span class="tag">&#x2705; URL Param XSS</span>
+    <span class="tag">&#x2705; Hidden Input XSS</span>
+    <span class="tag">&#x2705; Header XSS</span>
+    <span class="tag">&#x2705; DOM XSS</span>
+    <span class="tag">&#x2705; JSON Body XSS</span>
+    <span class="tag">&#x2705; Open Redirect</span>
+    <span class="tag">&#x2705; WAF Bypass Payloads</span>
+    <span class="tag">&#x2705; Polyglot Payloads</span>
+    <span class="tag">&#x2705; Browser Verify</span>
+    <span class="tag">&#x2705; Alert Capture</span>
+    <span class="tag">&#x2705; Screenshots</span>
+    <span class="tag">&#x2705; AI Analysis</span>
+    <span class="tag">&#x2705; PDF Report</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="scard red">   <div class="slabel">CRITICAL</div>    <div class="snum" id="s-critical">0</div></div>
+  <div class="scard orange"><div class="slabel">HIGH</div>         <div class="snum" id="s-high">0</div></div>
+  <div class="scard yellow"><div class="slabel">MEDIUM</div>       <div class="snum" id="s-medium">0</div></div>
+  <div class="scard green"> <div class="slabel">TOTAL VULNS</div>  <div class="snum" id="s-total">0</div></div>
+  <div class="scard blue">  <div class="slabel">PAGES</div>        <div class="snum" id="s-pages">0</div></div>
+  <div class="scard purple"><div class="slabel">VERIFIED</div>     <div class="snum" id="s-verified">0</div></div>
+  <div class="scard teal">  <div class="slabel">SCREENSHOTS</div>  <div class="snum" id="s-shots">0</div></div>
+  <div class="scard pink">  <div class="slabel">PAYLOADS TESTED</div><div class="snum" id="s-payloads">0</div></div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="grid2">
+  <!-- LOG -->
+  <div class="panel">
+    <div class="ptop">
+      <span class="ptitle">&#x1F4E1; Live Scan Log</span>
+      <button class="sm-btn" onclick="clearLog()">Clear</button>
+    </div>
+    <div id="logbox" class="logbox"></div>
+  </div>
+
+  <!-- PARAMS -->
+  <div class="panel">
+    <div class="ptop">
+      <span class="ptitle">&#x1F50D; All Parameters Found</span>
+      <span id="param-count" class="dim-text"></span>
+    </div>
+    <div id="param-box" class="param-box">
+      <div class="dim-text">Parameters will appear after scan starts...</div>
+    </div>
+  </div>
+</div>
+
+<!-- VULNERABILITIES TABLE -->
+<div class="panel" style="margin-top:12px">
+  <div class="ptop">
+    <span class="ptitle">&#x1F6A8; Vulnerabilities Found</span>
+    <div>
+      <button class="sm-btn" onclick="getPDF()">&#x1F4CB; PDF Report</button>
+      <button class="sm-btn" onclick="getJSON()">&#x1F4C4; JSON Export</button>
+    </div>
+  </div>
+  <div id="rinfo"></div>
+  <div class="twrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type</th>
+          <th>Severity</th>
+          <th>Parameter</th>
+          <th>Method</th>
+          <th>URL</th>
+          <th>Payload</th>
+          <th>Verified</th>
+          <th>Alert Text</th>
+          <th>Screenshot</th>
+        </tr>
+      </thead>
+      <tbody id="vtable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SCREENSHOTS GALLERY -->
+<div class="panel" style="margin-top:12px">
+  <div class="ptop">
+    <span class="ptitle">&#x1F4F8; Browser Screenshots (XSS Alert Proof)</span>
+    <span id="shot-count" class="dim-text">0 screenshots</span>
+  </div>
+  <div id="gallery" class="gallery">
+    <div class="dim-text">Screenshots will appear here when XSS alerts are triggered in browser...</div>
+  </div>
+</div>
+
+<!-- AI ANALYSIS -->
+<div class="panel" style="margin-top:12px">
+  <div class="ptop">
+    <span class="ptitle">&#x1F916; AI Analysis & Fix Recommendations</span>
+  </div>
+  <div id="abox"></div>
+</div>
+
+<!-- SCREENSHOT MODAL -->
+<div id="modal" class="modal" onclick="closeModal()">
+  <div class="modal-content">
+    <img id="modal-img" src="" alt="Screenshot"/>
+    <div id="modal-info" class="modal-info"></div>
+  </div>
+</div>
+
+<script>
+let timer=null, lastLog=0, lastFind=0, rowNum=0, shotCount=0;
+
+function startScan() {
+  const url = document.getElementById("url").value.trim();
+  if (!url) { alert("Enter a target URL"); return; }
+
+  // reset
+  document.getElementById("vtable").innerHTML  = "";
+  document.getElementById("abox").innerHTML    = "";
+  document.getElementById("logbox").innerHTML  = "";
+  document.getElementById("rinfo").innerHTML   = "";
+  document.getElementById("gallery").innerHTML = '<div class="dim-text">Waiting for XSS alerts...</div>';
+  document.getElementById("param-box").innerHTML = '<div class="dim-text">Extracting parameters...</div>';
+  lastLog=0; lastFind=0; rowNum=0; shotCount=0;
+  setStats({pages:0,forms:0,params:0,payloads_tested:0,verified:0,screenshots:0},[]);
+
+  setBadge("scanning");
+  document.getElementById("btn-scan").disabled = true;
+  document.getElementById("btn-stop").disabled = false;
+
+  fetch("/scan",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({url, mode: document.getElementById("scan-mode").value})
+  }).then(r=>r.json()).then(d=>{
+    if(d.error){
+      alert(d.error);
+      setBadge("idle");
+      document.getElementById("btn-scan").disabled=false;
+      document.getElementById("btn-stop").disabled=true;
+      return;
+    }
+    timer = setInterval(poll, 800);
+  });
+}
+
+function stopScan() {
+  fetch("/stop",{method:"POST"});
+  if(timer){clearInterval(timer);timer=null;}
+  setBadge("idle");
+  document.getElementById("btn-scan").disabled=false;
+  document.getElementById("btn-stop").disabled=true;
+}
+
+async function poll() {
+  try {
+    const d = await (await fetch("/poll")).json();
+
+    // logs
+    d.logs.slice(lastLog).forEach(addLog);
+    lastLog = d.logs.length;
+
+    // params
+    if(d.params && Object.keys(d.params).length > 0) {
+      renderParams(d.params);
+    }
+
+    // findings
+    d.findings.slice(lastFind).forEach(f => {
+      addRow(f);
+      addAnalysis(f);
+    });
+
+    // update existing rows for screenshots
+    d.findings.forEach((f,i) => {
+      updateRow(i, f);
+      if(f.screenshot) addScreenshot(f);
+    });
+
+    lastFind = d.findings.length;
+    setStats(d.stats, d.findings);
+
+    if(d.status==="complete") {
+      clearInterval(timer); timer=null;
+      setBadge("complete");
+      document.getElementById("btn-scan").disabled=false;
+      document.getElementById("btn-stop").disabled=true;
+    }
+  } catch(e){ console.error(e); }
+}
+
+function renderParams(params) {
+  const box = document.getElementById("param-box");
+  let html  = "";
+
+  if(params.url_params && Object.keys(params.url_params).length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F517; URL Parameters (${Object.keys(params.url_params).length})</div>
+      ${Object.entries(params.url_params).map(([k,v])=>
+        `<span class="param-tag url-p">${k}=${v}</span>`).join("")}
+    </div>`;
+  }
+
+  if(params.form_params && params.form_params.length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F4DD; Form Parameters</div>
+      ${params.form_params.map(f=>
+        `<div class="form-param">
+          <span class="method-badge">${f.method}</span>
+          <span class="dim-text">${f.action.substring(0,50)}</span><br>
+          ${f.inputs.map(i=>`<span class="param-tag form-p">${i.name} (${i.type})</span>`).join("")}
+        </div>`).join("")}
+    </div>`;
+  }
+
+  if(params.cookie_params && params.cookie_params.length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F36A; Cookie Parameters (${params.cookie_params.length})</div>
+      ${params.cookie_params.map(c=>`<span class="param-tag cookie-p">${c}</span>`).join("")}
+    </div>`;
+  }
+
+  if(params.hidden_inputs && params.hidden_inputs.length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F441; Hidden Inputs (${params.hidden_inputs.length})</div>
+      ${params.hidden_inputs.map(h=>`<span class="param-tag hidden-p">${h}</span>`).join("")}
+    </div>`;
+  }
+
+  if(params.js_params && params.js_params.length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F4DC; JavaScript Variables (${params.js_params.length})</div>
+      ${params.js_params.slice(0,20).map(j=>`<span class="param-tag js-p">${j}</span>`).join("")}
+    </div>`;
+  }
+
+  if(params.api_endpoints && params.api_endpoints.length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F310; API Endpoints (${params.api_endpoints.length})</div>
+      ${params.api_endpoints.map(e=>`<div class="api-endpoint">${e}</div>`).join("")}
+    </div>`;
+  }
+
+  if(params.header_params && params.header_params.length > 0) {
+    html += `<div class="param-section">
+      <div class="param-title">&#x1F4E8; Header Parameters</div>
+      ${params.header_params.map(h=>`<span class="param-tag header-p">${h}</span>`).join("")}
+    </div>`;
+  }
+
+  box.innerHTML = html || '<div class="dim-text">No parameters found</div>';
+  const total = (Object.keys(params.url_params||{}).length) +
+                (params.form_params||[]).reduce((a,f)=>a+f.inputs.length,0) +
+                (params.cookie_params||[]).length +
+                (params.hidden_inputs||[]).length;
+  document.getElementById("param-count").textContent = `${total} total params`;
+}
+
+function addLog(msg) {
+  const box = document.getElementById("logbox");
+  const d   = document.createElement("div");
+  d.className = "ll";
+  if(msg.includes("[!!!]"))       d.classList.add("ll-vuln");
+  else if(msg.includes("[Browser]")) d.classList.add("ll-browser");
+  else if(msg.includes("[+]"))    d.classList.add("ll-ok");
+  else if(msg.includes("[AI]"))   d.classList.add("ll-ai");
+  else if(msg.includes("[PARAM]"))d.classList.add("ll-param");
+  else if(msg.includes("ERROR")||msg.includes("[-]")) d.classList.add("ll-err");
+  else if(msg.includes("[*]"))    d.classList.add("ll-info");
+  else                            d.classList.add("ll-dim");
+  d.textContent = msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addRow(f) {
+  rowNum++;
+  const tb = document.getElementById("vtable");
+  const tr = document.createElement("tr");
+  tr.id = `row-${rowNum-1}`;
+  tr.innerHTML = `
+    <td class="dim">${rowNum}</td>
+    <td>${f.type}</td>
+    <td><span class="sb sb-${f.severity.toLowerCase()}">${f.severity}</span></td>
+    <td class="mono">${f.param}</td>
+    <td><span class="method-badge">${f.method}</span></td>
+    <td class="mono blue" title="${f.url}">${f.url.length>40?f.url.substring(0,40)+"...":f.url}</td>
+    <td class="mono red" title="${f.payload}">${f.payload.length>25?f.payload.substring(0,25)+"...":f.payload}</td>
+    <td id="verified-${rowNum-1}"><span class="pending">Checking...</span></td>
+    <td id="alert-${rowNum-1}" class="dim">-</td>
+    <td id="shot-${rowNum-1}" class="dim">-</td>`;
+  tb.prepend(tr);
+}
+
+function updateRow(idx, f) {
+  const vEl = document.getElementById(`verified-${idx}`);
+  const aEl = document.getElementById(`alert-${idx}`);
+  const sEl = document.getElementById(`shot-${idx}`);
+  if(!vEl) return;
+
+  if(f.verified !== undefined && f.verified !== null) {
+    if(f.verified) {
+      vEl.innerHTML = '<span class="verified-yes">VERIFIED</span>';
+    } else if(f.verified === false && f.alert_text !== undefined) {
+      vEl.innerHTML = '<span class="verified-no">Not Verified</span>';
+    }
+  }
+  if(f.alert_text) {
+    aEl.innerHTML = `<span class="alert-text">${f.alert_text}</span>`;
+  }
+  if(f.screenshot) {
+    sEl.innerHTML = `<img src="${f.screenshot}" class="thumb"
+      onclick="openModal('${f.screenshot}','${f.alert_text||''}','${f.payload}')"
+      title="Click to enlarge"/>`;
+  }
+}
+
+function addScreenshot(f) {
+  if(!f.screenshot) return;
+  const gallery = document.getElementById("gallery");
+  const id      = `shot-gallery-${f.screenshot.replace(/\//g,'-')}`;
+  if(document.getElementById(id)) return;
+
+  // clear placeholder
+  if(gallery.querySelector(".dim-text")) gallery.innerHTML = "";
+
+  shotCount++;
+  document.getElementById("shot-count").textContent = `${shotCount} screenshots`;
+
+  const div = document.createElement("div");
+  div.id        = id;
+  div.className = "shot-card";
+  div.innerHTML = `
+    <img src="${f.screenshot}" class="shot-img"
+         onclick="openModal('${f.screenshot}','${(f.alert_text||'').replace(/'/g,"\\'")}','${f.payload.replace(/'/g,"\\'")}')"
+         title="Click to enlarge"/>
+    <div class="shot-info">
+      <div class="shot-type">${f.type}</div>
+      <div class="shot-param mono">Param: ${f.param}</div>
+      ${f.alert_text ? `<div class="shot-alert">Alert: ${f.alert_text}</div>` : ""}
+      <div class="shot-payload mono red">${f.payload.substring(0,40)}</div>
+    </div>`;
+  gallery.prepend(div);
+}
+
+function addAnalysis(f) {
+  const box = document.getElementById("abox");
+  const d   = document.createElement("div");
+  d.className = "acard";
+  d.innerHTML = `
+    <div class="atitle">
+      <span class="sb sb-${f.severity.toLowerCase()}">${f.severity}</span>
+      &nbsp;${f.type} &mdash; <span class="mono">${f.param}</span>
+    </div>
+    <div class="aurl mono">${f.url}</div>
+    <div class="apayload">Payload: <span class="mono red">${f.payload}</span></div>
+    <div class="afix">${f.analysis||"Analyzing..."}</div>`;
+  box.prepend(d);
+}
+
+function setStats(stats, findings) {
+  const c = findings.filter(f=>f.severity==="CRITICAL").length;
+  const h = findings.filter(f=>f.severity==="HIGH").length;
+  const m = findings.filter(f=>f.severity==="MEDIUM").length;
+  document.getElementById("s-critical").textContent = c;
+  document.getElementById("s-high").textContent     = h;
+  document.getElementById("s-medium").textContent   = m;
+  document.getElementById("s-total").textContent    = findings.length;
+  document.getElementById("s-pages").textContent    = stats.pages||0;
+  document.getElementById("s-verified").textContent = stats.verified||0;
+  document.getElementById("s-shots").textContent    = stats.screenshots||0;
+  document.getElementById("s-payloads").textContent = stats.payloads_tested||0;
+}
+
+function setBadge(s) {
+  const b = document.getElementById("badge");
+  b.className   = "badge "+s;
+  b.textContent = s==="scanning"?"SCANNING":s==="complete"?"COMPLETE":"IDLE";
+}
+
+function openModal(src, alertText, payload) {
+  document.getElementById("modal-img").src  = src;
+  document.getElementById("modal-info").innerHTML =
+    `${alertText?`<strong>Alert: ${alertText}</strong><br>`:""}
+     <span class="mono red">${payload}</span>`;
+  document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+function clearLog() { document.getElementById("logbox").innerHTML=""; }
+
+async function getPDF() {
+  const d = await (await fetch("/report/pdf")).json();
+  document.getElementById("rinfo").innerHTML =
+    `<div class="rbox">${d.file?"PDF saved: "+d.file:"Error: "+d.error}</div>`;
+}
+
+async function getJSON() {
+  const d = await (await fetch("/report/json")).json();
+  document.getElementById("rinfo").innerHTML =
+    `<div class="rbox">${d.file?"JSON saved: "+d.file:"Error: "+d.error}</div>`;
+}
+
+setInterval(()=>{
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+},1000);
+</script>
+</body>
+</html>
